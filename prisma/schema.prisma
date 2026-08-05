@@ -1,0 +1,123 @@
+model VocReport {
+  id              String   @id @default(cuid())
+  title           String
+  executiveSummary String   @db.Text
+  keyInsights     String[]
+  recommendations String[]
+  totalAnalyzed   Int
+  positiveRatio   Float
+  topCategory     String
+  createdAt       DateTime @default(now())
+}
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  users     User[]
+  feedbacks Feedback[]
+  createdAt DateTime @default(now())
+}
+
+model User {
+  id          String    @id @default(cuid())
+  name        String?
+  email       String    @unique
+  passwordHash String
+  role        Role      @default(ADMIN)
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+}
+
+model Feedback {
+  id          String               @id @default(cuid())
+  workspaceId String              // <-- Added for multi-tenancy scoping
+  workspace   Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId      String?
+  content     String               @db.Text
+  rating      Int?
+  source      FeedbackSource       @default(WEB)
+  status      FeedbackStatus       @default(PENDING)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  aiAnalysis  AiAnalysis?
+  attractions FeedbackAttraction[]
+  @@index([workspaceId])
+  @@index([userId])
+  @@index([status])
+}
+
+model AiAnalysis {
+  id             String    @id @default(cuid())
+  feedbackId     String    @unique
+  feedback       Feedback  @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  sentiment      Sentiment @default(NEUTRAL)
+  sentimentScore Float
+  summary        String?   @db.Text
+  intent         String?
+  urgencyLevel   Urgency   @default(MEDIUM)
+  tags           String[]
+  analyzedAt     DateTime  @default(now())
+}
+
+model FeatureAttraction {
+  id          String               @id @default(cuid())
+  title       String               @unique
+  description String?              @db.Text
+  totalVotes  Int                  @default(0)
+  createdAt   DateTime             @default(now())
+  voters      FeedbackAttraction[]
+}
+
+model FeedbackAttraction {
+  id                  String            @id @default(cuid())
+  userId              String
+  featureAttractionId String
+  feedbackId          String?
+  featureAttraction   FeatureAttraction @relation(fields: [featureAttractionId], references: [id])
+  feedback            Feedback?         @relation(fields: [feedbackId], references: [id], onDelete: SetNull)
+  createdAt           DateTime          @default(now())
+
+  @@unique([userId, featureAttractionId])
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+enum Sentiment {
+  VERY_POSITIVE
+  POSITIVE
+  NEUTRAL
+  NEGATIVE
+  VERY_NEGATIVE
+}
+
+enum FeedbackStatus {
+  PENDING
+  PROCESSING
+  RESOLVED
+  ARCHIVED
+}
+
+enum FeedbackSource {
+  WEB
+  MOBILE_APP
+  EMAIL
+  IN_APP_PROMPT
+}
+
+enum Urgency {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}

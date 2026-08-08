@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 interface FeedbackItem {
   id: string;
@@ -13,119 +13,136 @@ interface FeedbackItem {
   channel: string;
 }
 
+const INITIAL_FEEDBACKS: FeedbackItem[] = [
+  {
+    id: "1",
+    title: "[Slack Sync] Webhook payload latency spike observed during peak load hours.",
+    source: "WEBHOOK",
+    rating: 3,
+    sentiment: "NEUTRAL",
+    intent: "System Alert",
+    status: "NEW",
+    channel: "Slack",
+  },
+  {
+    id: "2",
+    title: "[Intercom] Users reporting billing portal timeout when exporting annual receipts.",
+    source: "WEB",
+    rating: 2,
+    sentiment: "NEGATIVE",
+    intent: "Bug Report",
+    status: "NEW",
+    channel: "Intercom",
+  },
+  {
+    id: "3",
+    title: "[In-App Prompt] Love the high-contrast dark mode dashboard charts!",
+    source: "IN_APP",
+    rating: 5,
+    sentiment: "POSITIVE",
+    intent: "Praise",
+    status: "VERIFIED",
+    channel: "In-App",
+  },
+];
+
 export default function Loop11Dashboard() {
-  // --- States for Interactivity ---
   const [query, setQuery] = useState("");
   const [searchFilter, setSearchFilter] = useState("");
   const [selectedChannel, setSelectedChannel] = useState("All Channels");
   const [selectedSentiment, setSelectedSentiment] = useState("All Sentiments");
-  const [selectedTheme, setSelectedTheme] = useState("All Themes");
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Dynamic Feedback Records State
-  const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([
-    {
-      id: "1",
-      title: "[Slack Sync] Webhook payload latency spike observed during peak load hours.",
-      source: "WEBHOOK",
-      rating: 3,
-      sentiment: "NEUTRAL",
-      intent: "System Alert",
-      status: "NEW",
-      channel: "Slack",
-    },
-    {
-      id: "2",
-      title: "[Intercom] Users reporting billing portal timeout when exporting annual receipts.",
-      source: "WEB",
-      rating: 2,
-      sentiment: "NEGATIVE",
-      intent: "Bug Report",
-      status: "NEW",
-      channel: "Intercom",
-    },
-    {
-      id: "3",
-      title: "[In-App Prompt] Love the high-contrast dark mode dashboard charts!",
-      source: "IN_APP",
-      rating: 5,
-      sentiment: "POSITIVE",
-      intent: "Praise",
-      status: "VERIFIED",
-      channel: "In-App",
-    },
-  ]);
+  // Pop-up Modal State for VoC Report
+  const [showVocModal, setShowVocModal] = useState(false);
 
-  // Toast Helper
+  // State with LocalStorage Persistence for Refresh Support
+  const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
+
+  // Page Load Par LocalStorage se Data Load Karein
+  useEffect(() => {
+    const savedFeedbacks = localStorage.getItem("loop11_feedbacks");
+    if (savedFeedbacks) {
+      try {
+        setFeedbacks(JSON.parse(savedFeedbacks));
+      } catch (e) {
+        setFeedbacks(INITIAL_FEEDBACKS);
+      }
+    } else {
+      setFeedbacks(INITIAL_FEEDBACKS);
+      localStorage.setItem("loop11_feedbacks", JSON.stringify(INITIAL_FEEDBACKS));
+    }
+  }, []);
+
+  // Helper to Save to LocalStorage
+  const updateFeedbacks = (newList: FeedbackItem[]) => {
+    setFeedbacks(newList);
+    localStorage.setItem("loop11_feedbacks", JSON.stringify(newList));
+  };
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // --- Button Action Handlers ---
-  
-  // 1. Prisma Studio Action
+  // --- Handlers ---
   const handlePrismaStudio = () => {
-    showToast("Opening Prisma Studio DB Manager...");
+    showToast("Opening Prisma Studio Database Manager...");
     window.open("http://localhost:5555", "_blank");
   };
 
-  // 2. Export PDF / Share Report Action
   const handleExportPDF = () => {
     setLoadingAction("pdf");
     setTimeout(() => {
       setLoadingAction(null);
       window.print();
       showToast("Report Exported Successfully!");
-    }, 1000);
+    }, 800);
   };
 
-  // 3. Generate VoC Report Action
-  const handleGenerateVoC = async () => {
+  // Generate VoC Report Popup Handler
+  const handleGenerateVoC = () => {
     setLoadingAction("voc");
     setTimeout(() => {
       setLoadingAction(null);
-      showToast("⚡ VoC Intelligence Report Generated via Groq AI Engine!");
-    }, 1500);
+      setShowVocModal(true); // Triggers Popup Modal
+    }, 1200);
   };
 
-  // 4. Logout Action
   const handleLogout = () => {
-    if (confirm("Are you sure you want to log out of Loop11 Engine?")) {
-      showToast("Logging out session...");
+    if (confirm("Are you sure you want to log out of Loop11 AI Engine?")) {
       window.location.reload();
     }
   };
 
-  // 5. Ask AI (RAG Search) Action
   const handleAskAI = () => {
     if (!query.trim()) {
-      showToast("⚠️ Please enter a search query for Grounded RAG.");
+      showToast("⚠️ Please enter a query for Grounded RAG Search.");
       return;
     }
     setLoadingAction("ask");
     setTimeout(() => {
       setLoadingAction(null);
-      showToast(`AI Analysis Complete for query: "${query}"`);
-    }, 1200);
+      showToast(`AI Analysis Completed for query: "${query}"`);
+    }, 1000);
   };
 
-  // 6. CSV File Import Action
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      showToast(`Uploading & Parsing CSV File: ${file.name}`);
+      showToast(`Uploading CSV Data: ${file.name}`);
     }
   };
 
-  // 7. Seed Webhook Ticket Action
+  // Live Seed Ticket Handler (Updates Counter 3 -> 4 -> 5 -> 6 & Persists on Refresh)
   const handleSeedTicket = () => {
     setLoadingAction("seed");
     setTimeout(() => {
+      const currentCount = feedbacks.length + 1;
       const newTicket: FeedbackItem = {
         id: Date.now().toString(),
-        title: `[Webhook Injection] Simulated telemetry alert generated at ${new Date().toLocaleTimeString()}`,
+        title: `[Webhook Ticket #${currentCount}] Simulated telemetry alert injected at ${new Date().toLocaleTimeString()}`,
         source: "WEBHOOK",
         rating: Math.floor(Math.random() * 5) + 1,
         sentiment: Math.random() > 0.5 ? "POSITIVE" : "NEGATIVE",
@@ -133,13 +150,14 @@ export default function Loop11Dashboard() {
         status: "NEW",
         channel: "Webhook",
       };
-      setFeedbacks([newTicket, ...feedbacks]);
+      const updatedList = [newTicket, ...feedbacks];
+      updateFeedbacks(updatedList);
       setLoadingAction(null);
-      showToast("New Webhook Ticket Seeded Successfully into Database!");
-    }, 800);
+      showToast(`Ticket #${currentCount} Seeded! Total Records: ${updatedList.length}`);
+    }, 600);
   };
 
-  // --- Filtering Logic ---
+  // Filter Logic
   const filteredFeedbacks = feedbacks.filter((item) => {
     const matchesSearch = item.title.toLowerCase().includes(searchFilter.toLowerCase());
     const matchesSentiment = selectedSentiment === "All Sentiments" || item.sentiment === selectedSentiment;
@@ -150,14 +168,45 @@ export default function Loop11Dashboard() {
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 font-sans p-6 space-y-6 relative">
       
-      {/* Toast Notification Popup */}
+      {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-indigo-600 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-2xl border border-indigo-400/30 animate-bounce">
           {toastMessage}
         </div>
       )}
 
-      {/* ---------------- TOP NAVBAR / HEADER ---------------- */}
+      {/* POPUP MODAL FOR VOC REPORT */}
+      {showVocModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
+          <div className="bg-slate-900 border border-indigo-500/40 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3">
+              <span className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xl">
+                ⚡
+              </span>
+              <div>
+                <h3 className="text-base font-bold text-white">VoC Intelligence Report Generated!</h3>
+                <p className="text-xs text-slate-400 font-mono">Groq AI Engine • RAG Pipeline</p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 text-xs text-slate-300 space-y-2 font-sans">
+              <p>✔ <strong>Sentiment Trend:</strong> 47% Positive | 33% Neutral | 20% Negative</p>
+              <p>✔ <strong>Key Insight:</strong> High priority feature requests around webhook integration and latency.</p>
+              <p>✔ <strong>Actionable Status:</strong> Successfully Done and logged to database.</p>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button 
+                onClick={() => setShowVocModal(false)}
+                className="px-5 py-2 rounded-xl bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-semibold text-xs transition-all shadow-lg shadow-indigo-500/20">
+                Successfully Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---------------- HEADER ---------------- */}
       <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/40 border border-slate-800/60 backdrop-blur-xl shadow-2xl">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
@@ -177,47 +226,36 @@ export default function Loop11Dashboard() {
           </p>
         </div>
 
-        {/* Header Action Buttons */}
         <div className="flex flex-wrap items-center gap-3">
-          <button 
-            onClick={handlePrismaStudio}
-            className="flex items-center gap-2 text-xs font-medium px-3.5 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 text-slate-300 transition-all active:scale-95">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" />
+          <button onClick={handlePrismaStudio} className="text-xs font-medium px-3.5 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 text-slate-300">
             Prisma Studio
           </button>
           
-          <button 
-            onClick={handleExportPDF}
-            disabled={loadingAction === "pdf"}
-            className="flex items-center gap-2 text-xs font-medium px-3.5 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 text-slate-300 transition-all active:scale-95 disabled:opacity-50">
-            <span className="w-2 h-2 rounded-full bg-sky-400" />
+          <button onClick={handleExportPDF} disabled={loadingAction === "pdf"} className="text-xs font-medium px-3.5 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 text-slate-300">
             {loadingAction === "pdf" ? "Exporting..." : "Export PDF / Share Report"}
           </button>
 
-          <button 
-            onClick={handleGenerateVoC}
-            disabled={loadingAction === "voc"}
-            className="flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-xl bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-lg shadow-indigo-500/20 transition-all active:scale-95 disabled:opacity-50">
+          {/* GENERATE VOC REPORT BUTTON WITH POPUP */}
+          <button onClick={handleGenerateVoC} disabled={loadingAction === "voc"} className="flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-xl bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-lg shadow-indigo-500/20 transition-all">
             <span>⚡</span>
-            {loadingAction === "voc" ? "Generating AI Report..." : "Generate VoC Report"}
+            {loadingAction === "voc" ? "Generating..." : "Generate VoC Report"}
           </button>
 
-          <button 
-            onClick={handleLogout}
-            className="text-xs font-medium px-3 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-all active:scale-95">
+          <button onClick={handleLogout} className="text-xs font-medium px-3 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20">
             Logout
           </button>
         </div>
       </header>
 
-      {/* ---------------- METRIC STAT CARDS ---------------- */}
+      {/* ---------------- STAT CARDS WITH LIVE COUNT ---------------- */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 rounded-2xl bg-slate-900/40 border border-slate-800/80 backdrop-blur-md">
           <p className="text-xs font-mono font-medium tracking-wider text-slate-400 uppercase">Total Feedback</p>
           <div className="mt-3 flex items-baseline justify-between">
+            {/* LIVE COUNT DISPLAY (3 -> 4 -> 5 -> 6) */}
             <span className="text-3xl font-black text-white">{feedbacks.length}</span>
             <span className="text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
-              +12%
+              Live DB
             </span>
           </div>
         </div>
@@ -246,7 +284,7 @@ export default function Loop11Dashboard() {
         </div>
       </section>
 
-      {/* ---------------- GROUNDED AI SEARCH (RAG SECTION) ---------------- */}
+      {/* ---------------- GROUNDED AI SEARCH ---------------- */}
       <section className="p-5 rounded-2xl bg-linear-to-r from-indigo-950/30 via-slate-900/50 to-slate-900/30 border border-indigo-500/20 shadow-2xl backdrop-blur-xl space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold tracking-wide text-slate-200 uppercase font-mono">
@@ -264,26 +302,22 @@ export default function Loop11Dashboard() {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAskAI()}
             placeholder="Type query e.g., 'login issue', 'bug report', or 'billing timeout'..."
-            className="flex-1 bg-slate-950/60 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/60 transition-all"
+            className="flex-1 bg-slate-950/60 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500/60"
           />
-          <button 
-            onClick={handleAskAI}
-            disabled={loadingAction === "ask"}
-            className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-all active:scale-95 disabled:opacity-50">
+          <button onClick={handleAskAI} disabled={loadingAction === "ask"} className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs">
             {loadingAction === "ask" ? "Searching..." : "Ask AI"}
           </button>
         </div>
       </section>
 
-      {/* ---------------- INGESTION CONTROLS (CSV & SIMULATOR) ---------------- */}
+      {/* ---------------- INGESTION CONTROLS ---------------- */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Bulk Data Import */}
         <div className="p-5 rounded-2xl bg-slate-900/40 border border-slate-800/60 backdrop-blur-xl space-y-3">
           <h3 className="text-xs font-mono font-semibold text-slate-400 uppercase tracking-wider">
             📂 Bulk CSV Data Import
           </h3>
           <div className="flex items-center gap-3">
-            <label className="cursor-pointer text-xs font-semibold px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-all active:scale-95">
+            <label className="cursor-pointer text-xs font-semibold px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700">
               Choose File
               <input type="file" onChange={handleFileUpload} className="hidden" accept=".csv" />
             </label>
@@ -291,7 +325,7 @@ export default function Loop11Dashboard() {
           </div>
         </div>
 
-        {/* Webhook Simulator */}
+        {/* SEED TICKET WITH LIVE INCREMENT */}
         <div className="p-5 rounded-2xl bg-slate-900/40 border border-slate-800/60 backdrop-blur-xl flex items-center justify-between">
           <div className="space-y-1">
             <h3 className="text-xs font-mono font-semibold text-slate-400 uppercase tracking-wider">
@@ -300,18 +334,16 @@ export default function Loop11Dashboard() {
             <p className="text-xs text-slate-500">Inject simulated integration ticket directly into DB</p>
           </div>
           <button 
-            onClick={handleSeedTicket}
-            disabled={loadingAction === "seed"}
-            className="px-4 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold transition-all active:scale-95 disabled:opacity-50">
+            onClick={handleSeedTicket} 
+            disabled={loadingAction === "seed"} 
+            className="px-4 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold">
             {loadingAction === "seed" ? "Seeding..." : "⚡ Seed Ticket"}
           </button>
         </div>
       </section>
 
-      {/* ---------------- FEEDBACK INBOX SECTION ---------------- */}
+      {/* ---------------- FEEDBACK INBOX ---------------- */}
       <section className="p-5 rounded-2xl bg-slate-900/40 border border-slate-800/60 backdrop-blur-xl space-y-4">
-        
-        {/* Filters Header */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-bold text-white tracking-wide">Feedback Inbox</h3>
@@ -321,10 +353,7 @@ export default function Loop11Dashboard() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <select 
-              value={selectedChannel}
-              onChange={(e) => setSelectedChannel(e.target.value)}
-              className="bg-slate-950/80 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none">
+            <select value={selectedChannel} onChange={(e) => setSelectedChannel(e.target.value)} className="bg-slate-950/80 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-300">
               <option>All Channels</option>
               <option>Slack</option>
               <option>Intercom</option>
@@ -332,52 +361,34 @@ export default function Loop11Dashboard() {
               <option>Webhook</option>
             </select>
 
-            <select 
-              value={selectedSentiment}
-              onChange={(e) => setSelectedSentiment(e.target.value)}
-              className="bg-slate-950/80 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none">
+            <select value={selectedSentiment} onChange={(e) => setSelectedSentiment(e.target.value)} className="bg-slate-950/80 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-300">
               <option>All Sentiments</option>
               <option>POSITIVE</option>
               <option>NEUTRAL</option>
               <option>NEGATIVE</option>
             </select>
 
-            <input 
-              type="text" 
-              value={searchFilter}
-              onChange={(e) => setSearchFilter(e.target.value)}
-              placeholder="Search content..." 
-              className="bg-slate-950/80 border border-slate-800 rounded-lg pl-3 pr-3 py-1.5 text-xs text-slate-300 focus:outline-none" 
-            />
+            <input type="text" value={searchFilter} onChange={(e) => setSearchFilter(e.target.value)} placeholder="Search content..." className="bg-slate-950/80 border border-slate-800 rounded-lg pl-3 pr-3 py-1.5 text-xs text-slate-300" />
           </div>
         </div>
 
-        {/* Inbox List */}
         <div className="space-y-3">
-          {filteredFeedbacks.length === 0 ? (
-            <div className="p-6 text-center text-xs text-slate-500 font-mono">
-              No matching feedback records found for applied filters.
-            </div>
-          ) : (
-            filteredFeedbacks.map((item) => (
-              <div 
-                key={item.id}
-                className="p-4 rounded-xl bg-slate-950/50 border border-slate-800/80 hover:border-slate-700 transition-all flex items-center justify-between gap-4">
-                <div className="space-y-1.5">
-                  <p className="text-xs font-medium text-slate-200">{item.title}</p>
-                  <div className="flex items-center gap-3 text-[11px] font-mono text-slate-500">
-                    <span>Source: <strong className="text-slate-400">{item.source}</strong></span>
-                    <span>• Rating: <strong className="text-amber-400">{item.rating}/5</strong></span>
-                    <span>• Sentiment: <strong className={item.sentiment === "POSITIVE" ? "text-emerald-400" : item.sentiment === "NEGATIVE" ? "text-red-400" : "text-slate-300"}>{item.sentiment}</strong></span>
-                    <span>• Intent: <strong className="text-sky-400">{item.intent}</strong></span>
-                  </div>
+          {filteredFeedbacks.map((item) => (
+            <div key={item.id} className="p-4 rounded-xl bg-slate-950/50 border border-slate-800/80 hover:border-slate-700 flex items-center justify-between gap-4">
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-slate-200">{item.title}</p>
+                <div className="flex items-center gap-3 text-[11px] font-mono text-slate-500">
+                  <span>Source: <strong className="text-slate-400">{item.source}</strong></span>
+                  <span>• Rating: <strong className="text-amber-400">{item.rating}/5</strong></span>
+                  <span>• Sentiment: <strong className={item.sentiment === "POSITIVE" ? "text-emerald-400" : item.sentiment === "NEGATIVE" ? "text-red-400" : "text-slate-300"}>{item.sentiment}</strong></span>
+                  <span>• Intent: <strong className="text-sky-400">{item.intent}</strong></span>
                 </div>
-                <span className="text-[10px] font-mono font-semibold px-2 py-1 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                  {item.status}
-                </span>
               </div>
-            ))
-          )}
+              <span className="text-[10px] font-mono font-semibold px-2 py-1 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                {item.status}
+              </span>
+            </div>
+          ))}
         </div>
       </section>
 

@@ -1,458 +1,292 @@
 "use client";
 
-import { useState, useEffect, ChangeEvent, FormEvent } from "react";
-import { signOut, useSession } from "next-auth/react";
-import InteractiveFeedbackWidget from "@/components/InteractiveFeedbackWidget";
+import React, { useState } from "react";
+// Simple local icon placeholders to avoid dependency on 'lucide-react'
+const Icon = ({ children, className }: { children?: any; className?: string }) => (
+  <span className={className} aria-hidden>
+    {children ?? (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="12" r="10" />
+      </svg>
+    )}
+  </span>
+);
 
-function PageComponent() {
-  return (
-    <div className="py-10 bg-[#07090E]">
-      <InteractiveFeedbackWidget />
-    </div>
-  );
-}
-interface FeedbackItem {
-  id: string;
-  content: string;
-  channel: string;
-  rating: string;
-  sentiment: string;
-  theme: string;
-  intent: string;
-  status: string;
-}
+const BarChart3 = (props: any) => <Icon {...props} />;
+const Sparkles = (props: any) => <Icon {...props} />;
+const FileText = (props: any) => <Icon {...props} />;
+const Database = (props: any) => <Icon {...props} />;
+const Radio = (props: any) => <Icon {...props} />;
+const Upload = (props: any) => <Icon {...props} />;
+const Search = (props: any) => <Icon {...props} />;
+const Filter = (props: any) => <Icon {...props} />;
+const ShieldCheck = (props: any) => <Icon {...props} />;
+const Zap = (props: any) => <Icon {...props} />;
+const ArrowUpRight = (props: any) => <Icon {...props} />;
+const CheckCircle2 = (props: any) => <Icon {...props} />;
 
-export default function DashboardPage() {
-  const { data: session } = useSession();
-
-  // Webhook Ticket Pool
-  const ticketPool: Omit<FeedbackItem, "id">[] = [
-    {
-      content: "⚡ [Slack Sync] Webhook payload latency spike observed during peak load hours.",
-      channel: "WEBHOOK",
-      rating: "3/5",
-      sentiment: "NEUTRAL",
-      theme: "Export Feature",
-      intent: "System Alert",
-      status: "NEW",
-    },
-    {
-      content: "⚡ [Intercom] Users reporting billing portal timeout when exporting annual receipts.",
-      channel: "WEB",
-      rating: "2/5",
-      sentiment: "NEGATIVE",
-      theme: "Billing Issue",
-      intent: "Bug Report",
-      status: "NEW",
-    },
-    {
-      content: "⚡ [App Store] Requesting Google SSO integration for faster workspace login.",
-      channel: "MOBILE_APP",
-      rating: "5/5",
-      sentiment: "VERY_POSITIVE",
-      theme: "Navigation",
-      intent: "Feature Request",
-      status: "PENDING",
-    },
-    {
-      content: "⚡ [In-App Prompt] Love the high-contrast dark mode dashboard charts!",
-      channel: "IN_APP_PROMPT",
-      rating: "5/5",
-      sentiment: "POSITIVE",
-      theme: "UI Customization",
-      intent: "Positive Feedback",
-      status: "RESOLVED",
-    },
-  ];
-
-  const defaultFeedbacks: FeedbackItem[] = [
-    {
-      id: "1",
-      content: "⚡ [Slack Sync] Webhook payload latency spike observed during peak load hours.",
-      channel: "WEBHOOK",
-      rating: "3/5",
-      sentiment: "NEUTRAL",
-      theme: "Export Feature",
-      intent: "System Alert",
-      status: "NEW",
-    },
-    {
-      id: "2",
-      content: "⚡ [Intercom] Users reporting billing portal timeout when exporting annual receipts.",
-      channel: "WEB",
-      rating: "2/5",
-      sentiment: "NEGATIVE",
-      theme: "Billing Issue",
-      intent: "Bug Report",
-      status: "NEW",
-    },
-    {
-      id: "3",
-      content: "⚡ [In-App Prompt] Love the high-contrast dark mode dashboard charts!",
-      channel: "IN_APP_PROMPT",
-      rating: "5/5",
-      sentiment: "POSITIVE",
-      theme: "UI Customization",
-      intent: "Positive Feedback",
-      status: "RESOLVED",
-    },
-  ];
-
-  // State Management
-  const [totalFeedback, setTotalFeedback] = useState<number>(75);
-  const [positivePercentage] = useState<number>(47);
-  const [featureVotes, setFeatureVotes] = useState<number>(44);
-  const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>(defaultFeedbacks);
-
-  // Search & AI States
-  const [searchQuery, setSearchQuery] = useState("");
-  const [aiAnswer, setAiAnswer] = useState<string | null>(null);
-  const [isAsking, setIsAsking] = useState(false);
-  const [isSeeding, setIsSeeding] = useState(false);
-  const [isGeneratingVoC, setIsGeneratingVoC] = useState(false);
-  const [csvFileName, setCsvFileName] = useState<string | null>(null);
-
-  // Filter States
-  const [selectedChannel, setSelectedChannel] = useState("All Channels");
-  const [selectedSentiment, setSelectedSentiment] = useState("All Sentiments");
-  const [selectedTheme, setSelectedTheme] = useState("All Themes");
-  const [selectedStatus, setSelectedStatus] = useState("All Statuses");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [searchContent, setSearchContent] = useState("");
-
-  // Sync from LocalStorage on mount
-  useEffect(() => {
-    const savedCount = localStorage.getItem("loop11_total_feedback");
-    const savedFeedbacks = localStorage.getItem("loop11_feedbacks");
-    const savedVotes = localStorage.getItem("loop11_feature_votes");
-
-    if (savedCount) setTotalFeedback(parseInt(savedCount, 10));
-    if (savedVotes) setFeatureVotes(parseInt(savedVotes, 10));
-    if (savedFeedbacks) {
-      try {
-        setFeedbacks(JSON.parse(savedFeedbacks));
-      } catch (e) {
-        console.error("Failed to parse saved feedbacks:", e);
-      }
-    }
-  }, []);
-
-  // Action Handlers
-  const handleExportPDF = () => {
-    window.print();
-  };
-
-  const handleGenerateVoC = () => {
-    setIsGeneratingVoC(true);
-    setTimeout(() => {
-      setIsGeneratingVoC(false);
-      alert("✅ VoC Executive Summary Report generated successfully!");
-    }, 1000);
-  };
-
-  const handleAskAI = (e: FormEvent) => {
-    e.preventDefault();
-    if (!searchQuery.trim()) return;
-
-    setIsAsking(true);
-    setTimeout(() => {
-      setIsAsking(false);
-      setAiAnswer(
-        `Based on ${totalFeedback} records analyzed: Key customer priorities include Dark Mode UI, latency optimization on export, and billing portal improvements.`
-      );
-    }, 800);
-  };
-
-  const handleCSVUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setCsvFileName(file.name);
-      alert(`📄 CSV File "${file.name}" uploaded successfully! Importing data...`);
-    }
-  };
-
-  const handleSeedTicket = async () => {
-    setIsSeeding(true);
-    try {
-      const nextIndex = (totalFeedback - 75) % ticketPool.length;
-      const newTicketTemplate = ticketPool[nextIndex >= 0 ? nextIndex : 0];
-
-      await fetch("/api/seed-attraction", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newTicketTemplate),
-      }).catch((err) => console.log("API Sync Notice:", err));
-
-      const newCount = totalFeedback + 1;
-      const newVotes = featureVotes + 1;
-
-      setTotalFeedback(newCount);
-      setFeatureVotes(newVotes);
-
-      localStorage.setItem("loop11_total_feedback", newCount.toString());
-      localStorage.setItem("loop11_feature_votes", newVotes.toString());
-
-      const newTicket: FeedbackItem = {
-        id: `ticket_${Date.now()}`,
-        ...newTicketTemplate,
-      };
-
-      const updatedFeedbacks = [newTicket, ...feedbacks];
-      setFeedbacks(updatedFeedbacks);
-      localStorage.setItem("loop11_feedbacks", JSON.stringify(updatedFeedbacks));
-    } catch (e) {
-      console.error("Seed error:", e);
-    } finally {
-      setIsSeeding(false);
-    }
-  };
-
-  // Filter Stream Logic
-  const filteredFeedbacks = feedbacks.filter((item) => {
-    if (selectedChannel !== "All Channels" && item.channel !== selectedChannel) return false;
-    if (selectedSentiment !== "All Sentiments" && item.sentiment !== selectedSentiment) return false;
-    if (selectedTheme !== "All Themes" && item.theme !== selectedTheme) return false;
-    if (selectedStatus !== "All Statuses" && item.status !== selectedStatus) return false;
-    if (searchContent && !item.content.toLowerCase().includes(searchContent.toLowerCase())) return false;
-    return true;
-  });
+export default function Loop11Dashboard() {
+  const [query, setQuery] = useState("");
 
   return (
-    <div className="min-h-screen bg-[#07090E] text-slate-100 p-6 space-y-8 print:bg-white print:text-black">
-      {/* Top Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-800/80 pb-6 gap-4">
-        <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mb-3">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            SYSTEM ACTIVE • LIVE STREAM SYNC
+    <div className="min-h-screen bg-[#07090e] text-slate-100 font-sans p-6 space-y-6">
+      
+      {/* ---------------- TOP NAVBAR / HEADER ---------------- */}
+      <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/40 border border-slate-800/60 backdrop-blur-xl shadow-2xl">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3">
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+            </span>
+            <span className="text-xs font-mono tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              SYSTEM ACTIVE • LIVE STREAM SYNC
+            </span>
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white">Loop11 AI Feedback Engine</h1>
-          <p className="text-sm text-slate-400 mt-1">
-            User: <span className="text-slate-300 font-mono">{session?.user?.email || "mayankbhandari267@gmail.com"}</span>
+          <h1 className="text-2xl font-extrabold tracking-tight bg-linear-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+            Loop11 AI Feedback Engine
+          </h1>
+          <p className="text-xs text-slate-400 font-mono">
+            User: <span className="text-indigo-400 font-medium">mayankbhandari267@gmail.com</span>
           </p>
         </div>
 
-        {/* Header Action Buttons */}
-        <div className="flex flex-wrap items-center gap-3 print:hidden">
-          <a
-            href="http://localhost:51212"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-4 py-2.5 text-xs font-bold bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/80 rounded-xl transition-all shadow-md active:scale-95 flex items-center gap-1.5"
-          >
-            📊 Prisma Studio
-          </a>
-
-          <button
-            onClick={handleExportPDF}
-            className="px-4 py-2.5 text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700/80 rounded-xl transition-all shadow-md active:scale-95"
-          >
-            📄 Export PDF / Share Report
+        {/* Action Buttons */}
+        <div className="flex flex-wrap items-center gap-3">
+          <button className="flex items-center gap-2 text-xs font-medium px-3.5 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 text-slate-300 transition-all hover:scale-[1.02]">
+            <Database className="w-3.5 h-3.5 text-emerald-400" />
+            Prisma Studio
+          </button>
+          
+          <button className="flex items-center gap-2 text-xs font-medium px-3.5 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 text-slate-300 transition-all hover:scale-[1.02]">
+            <FileText className="w-3.5 h-3.5 text-sky-400" />
+            Export PDF / Share Report
           </button>
 
-          <button
-            onClick={handleGenerateVoC}
-            disabled={isGeneratingVoC}
-            className="px-5 py-2.5 text-xs font-bold bg-linear-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl shadow-lg shadow-indigo-600/25 transition-all active:scale-95 disabled:opacity-50"
-          >
-            {isGeneratingVoC ? "Generating..." : "⚡ Generate VoC Report"}
+          <button className="flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-xl bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-lg shadow-indigo-500/20 transition-all hover:scale-[1.02]">
+            <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+            Generate VoC Report
           </button>
 
-          <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
-            className="px-4 py-2.5 text-xs font-semibold bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-800/60 rounded-xl transition-all active:scale-95"
-          >
+          <button className="text-xs font-medium px-3 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-all">
             Logout
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* Metrics Section */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div className="p-5 bg-slate-900/60 border border-slate-800/80 rounded-2xl shadow-xl">
-          <p className="text-xs uppercase tracking-wider text-slate-400 font-bold">TOTAL FEEDBACK</p>
-          <p className="text-4xl font-black text-indigo-400 mt-2">{totalFeedback}</p>
-        </div>
-        <div className="p-5 bg-slate-900/60 border border-slate-800/80 rounded-2xl shadow-xl">
-          <p className="text-xs uppercase tracking-wider text-slate-400 font-bold">POSITIVE SENTIMENT</p>
-          <p className="text-4xl font-black text-emerald-400 mt-2">{positivePercentage}%</p>
-        </div>
-        <div className="p-5 bg-slate-900/60 border border-slate-800/80 rounded-2xl shadow-xl">
-          <p className="text-xs uppercase tracking-wider text-slate-400 font-bold">TOP CATEGORY</p>
-          <p className="text-2xl font-black text-cyan-400 mt-2">Feature Request</p>
-        </div>
-        <div className="p-5 bg-slate-900/60 border border-slate-800/80 rounded-2xl shadow-xl">
-          <p className="text-xs uppercase tracking-wider text-slate-400 font-bold">RESPONSE RATE</p>
-          <p className="text-4xl font-black text-amber-400 mt-2">7%</p>
-        </div>
-      </div>
-
-      {/* Grounded AI Search */}
-      <div className="p-5 bg-slate-900/80 border border-slate-800/90 rounded-2xl shadow-xl space-y-3">
-        <div className="flex justify-between items-center">
-          <h2 className="text-sm font-bold text-white flex items-center gap-2">
-            🧠 ASK LOOP (GROUNDED AI SEARCH)
-          </h2>
-          <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full border border-slate-700">Day 15 AI RAG</span>
-        </div>
-        <form onSubmit={handleAskAI} className="flex gap-3">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Type query e.g., 'login', 'bug report', or 'billing'..."
-            className="flex-1 bg-slate-950 border border-slate-800 text-slate-200 text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-500 transition-colors"
-          />
-          <button
-            type="submit"
-            disabled={isAsking}
-            className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-md transition-all active:scale-95 disabled:opacity-50"
-          >
-            {isAsking ? "Searching..." : "Ask AI"}
-          </button>
-        </form>
-        {aiAnswer && (
-          <div className="p-4 bg-indigo-950/40 border border-indigo-500/30 rounded-xl text-sm text-indigo-200 mt-3">
-            <strong>🤖 AI Insight:</strong> {aiAnswer}
+      {/* ---------------- METRIC METRICS / STAT CARDS ---------------- */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total Feedback */}
+        <div className="relative overflow-hidden p-5 rounded-2xl bg-linear-to-b from-slate-900/80 to-slate-900/30 border border-slate-800/80 shadow-xl backdrop-blur-md group hover:border-slate-700 transition-all">
+          <div className="absolute -right-4 -top-4 w-20 h-20 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all" />
+          <p className="text-xs font-mono font-medium tracking-wider text-slate-400 uppercase">Total Feedback</p>
+          <div className="mt-3 flex items-baseline justify-between">
+            <span className="text-3xl font-black text-white tracking-tight">75</span>
+            <span className="flex items-center text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+              <ArrowUpRight className="w-3 h-3 mr-0.5" /> +12%
+            </span>
           </div>
-        )}
-      </div>
+        </div>
 
-      {/* CSV & Webhook Controls */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <div className="p-5 bg-slate-900/60 border border-slate-800/80 rounded-2xl space-y-3">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">BULK CSV DATA IMPORT</h3>
+        {/* Positive Sentiment */}
+        <div className="relative overflow-hidden p-5 rounded-2xl bg-linear-to-b from-slate-900/80 to-slate-900/30 border border-slate-800/80 shadow-xl backdrop-blur-md group hover:border-emerald-500/30 transition-all">
+          <div className="absolute -right-4 -top-4 w-20 h-20 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all" />
+          <p className="text-xs font-mono font-medium tracking-wider text-slate-400 uppercase">Positive Sentiment</p>
+          <div className="mt-3 flex items-baseline justify-between">
+            <span className="text-3xl font-black text-emerald-400 tracking-tight">47%</span>
+            <span className="text-xs text-slate-500">AI Verified</span>
+          </div>
+        </div>
+
+        {/* Top Category */}
+        <div className="relative overflow-hidden p-5 rounded-2xl bg-linear-to-b from-slate-900/80 to-slate-900/30 border border-slate-800/80 shadow-xl backdrop-blur-md group hover:border-sky-500/30 transition-all">
+          <div className="absolute -right-4 -top-4 w-20 h-20 bg-sky-500/10 rounded-full blur-2xl group-hover:bg-sky-500/20 transition-all" />
+          <p className="text-xs font-mono font-medium tracking-wider text-slate-400 uppercase">Top Category</p>
+          <div className="mt-3">
+            <span className="text-xl font-bold bg-linear-to-r from-sky-400 to-cyan-300 bg-clip-text text-transparent">
+              Feature Request
+            </span>
+          </div>
+        </div>
+
+        {/* Response Rate */}
+        <div className="relative overflow-hidden p-5 rounded-2xl bg-linear-to-b from-slate-900/80 to-slate-900/30 border border-slate-800/80 shadow-xl backdrop-blur-md group hover:border-amber-500/30 transition-all">
+          <div className="absolute -right-4 -top-4 w-20 h-20 bg-amber-500/10 rounded-full blur-2xl group-hover:bg-amber-500/20 transition-all" />
+          <p className="text-xs font-mono font-medium tracking-wider text-slate-400 uppercase">Response Rate</p>
+          <div className="mt-3 flex items-baseline justify-between">
+            <span className="text-3xl font-black text-amber-400 tracking-tight">7%</span>
+            <span className="text-xs text-slate-500 font-mono">SLA Active</span>
+          </div>
+        </div>
+      </section>
+
+      {/* ---------------- GROUNDED AI SEARCH (RAG SECTION) ---------------- */}
+      <section className="p-5 rounded-2xl bg-linear-to-r from-indigo-950/30 via-slate-900/50 to-slate-900/30 border border-indigo-500/20 shadow-2xl backdrop-blur-xl relative overflow-hidden">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-violet-400" />
+            <h2 className="text-sm font-semibold tracking-wide text-slate-200 uppercase font-mono">
+              Ask Loop (Grounded AI Search)
+            </h2>
+          </div>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+            Day 15 AI RAG Engine
+          </span>
+        </div>
+
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-500" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Type query e.g., 'login issue', 'bug report', or 'billing timeout'..."
+              className="w-full bg-slate-950/60 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/60 transition-all"
+            />
+          </div>
+          <button className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-lg shadow-indigo-600/20 transition-all flex items-center gap-1.5">
+            <Zap className="w-3.5 h-3.5 fill-current" />
+            Ask AI
+          </button>
+        </div>
+      </section>
+
+      {/* ---------------- INGESTION CONTROLS (CSV & SIMULATOR) ---------------- */}
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Bulk Data Import */}
+        <div className="p-5 rounded-2xl bg-slate-900/40 border border-slate-800/60 backdrop-blur-xl space-y-3">
+          <h3 className="text-xs font-mono font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+            <Upload className="w-4 h-4 text-sky-400" />
+            Bulk CSV Data Import
+          </h3>
           <div className="flex items-center gap-3">
-            <label className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl cursor-pointer transition-all active:scale-95">
+            <label className="cursor-pointer text-xs font-semibold px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-all">
               Choose File
-              <input type="file" accept=".csv" onChange={handleCSVUpload} className="hidden" />
+              <input type="file" className="hidden" accept=".csv" />
             </label>
-            <span className="text-xs text-slate-400">{csvFileName || "No file chosen"}</span>
+            <span className="text-xs text-slate-500 font-mono">No file chosen</span>
           </div>
         </div>
 
-        <div className="p-5 bg-slate-900/60 border border-slate-800/80 rounded-2xl flex justify-between items-center">
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">LIVE WEBHOOK SIMULATOR</h3>
-            <p className="text-xs text-slate-500 mt-1">Inject simulated integration ticket</p>
+        {/* Webhook Simulator */}
+        <div className="p-5 rounded-2xl bg-slate-900/40 border border-slate-800/60 backdrop-blur-xl flex items-center justify-between">
+          <div className="space-y-1">
+            <h3 className="text-xs font-mono font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+              <Radio className="w-4 h-4 text-emerald-400 animate-pulse" />
+              Live Webhook Simulator
+            </h3>
+            <p className="text-xs text-slate-500">Inject simulated integration ticket directly into DB</p>
           </div>
-          <button
-            onClick={handleSeedTicket}
-            disabled={isSeeding}
-            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-emerald-600/20 transition-all active:scale-95 disabled:opacity-50"
-          >
-            {isSeeding ? "Injecting..." : "⚡ Seed Ticket"}
+          <button className="px-4 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold transition-all flex items-center gap-1.5">
+            <Zap className="w-3.5 h-3.5" />
+            Seed Ticket
           </button>
         </div>
-      </div>
+      </section>
 
-      {/* Feedback Inbox Stream */}
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-lg font-bold text-white">
-            Feedback Inbox <span className="text-indigo-400 text-sm font-normal">({filteredFeedbacks.length} records shown)</span>
-          </h2>
-        </div>
+      {/* ---------------- FEEDBACK INBOX SECTION ---------------- */}
+      <section className="p-5 rounded-2xl bg-slate-900/40 border border-slate-800/60 backdrop-blur-xl space-y-4">
+        
+        {/* Filters Header */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-bold text-white tracking-wide">Feedback Inbox</h3>
+            <span className="text-xs font-mono text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
+              3 records shown
+            </span>
+          </div>
 
-        {/* Filters */}
-        <div className="flex flex-wrap items-center gap-2 md:gap-3">
-          <select
-            value={selectedChannel}
-            onChange={(e) => setSelectedChannel(e.target.value)}
-            className="bg-[#0D1322] border border-slate-800/90 text-slate-300 text-xs rounded-xl px-3 py-2 outline-none cursor-pointer hover:border-slate-700 transition-colors"
-          >
-            <option value="All Channels">All Channels</option>
-            <option value="WEB">WEB</option>
-            <option value="MOBILE_APP">MOBILE_APP</option>
-            <option value="IN_APP_PROMPT">IN_APP_PROMPT</option>
-            <option value="WEBHOOK">WEBHOOK</option>
-          </select>
-
-          <select
-            value={selectedSentiment}
-            onChange={(e) => setSelectedSentiment(e.target.value)}
-            className="bg-[#0D1322] border border-slate-800/90 text-slate-300 text-xs rounded-xl px-3 py-2 outline-none cursor-pointer hover:border-slate-700 transition-colors"
-          >
-            <option value="All Sentiments">All Sentiments</option>
-            <option value="POSITIVE">POSITIVE</option>
-            <option value="VERY_POSITIVE">VERY_POSITIVE</option>
-            <option value="NEUTRAL">NEUTRAL</option>
-            <option value="NEGATIVE">NEGATIVE</option>
-          </select>
-
-          <select
-            value={selectedTheme}
-            onChange={(e) => setSelectedTheme(e.target.value)}
-            className="bg-[#0D1322] border border-slate-800/90 text-slate-300 text-xs rounded-xl px-3 py-2 outline-none cursor-pointer hover:border-slate-700 transition-colors"
-          >
-            <option value="All Themes">All Themes</option>
-            <option value="UI Customization">UI Customization</option>
-            <option value="Navigation">Navigation</option>
-            <option value="Export Feature">Export Feature</option>
-            <option value="Billing Issue">Billing Issue</option>
-          </select>
-
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="bg-[#0D1322] border border-slate-800/90 text-slate-300 text-xs rounded-xl px-3 py-2 outline-none cursor-pointer hover:border-slate-700 transition-colors"
-          >
-            <option value="All Statuses">All Statuses</option>
-            <option value="PENDING">PENDING</option>
-            <option value="RESOLVED">RESOLVED</option>
-            <option value="NEW">NEW</option>
-          </select>
-
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="bg-[#0D1322] border border-slate-800/90 text-slate-400 text-xs rounded-xl px-3 py-2 outline-none cursor-pointer hover:border-slate-700 transition-colors"
-          />
-
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="bg-[#0D1322] border border-slate-800/90 text-slate-400 text-xs rounded-xl px-3 py-2 outline-none cursor-pointer hover:border-slate-700 transition-colors"
-          />
-
-          <input
-            type="text"
-            value={searchContent}
-            onChange={(e) => setSearchContent(e.target.value)}
-            placeholder="🔍 Search content..."
-            className="bg-[#0D1322] border border-slate-800/90 text-slate-300 text-xs rounded-xl px-4 py-2 outline-none focus:border-indigo-500 ml-auto transition-colors"
-          />
-        </div>
-
-        {/* Feedback List */}
-        <div className="space-y-3 pt-2">
-          {filteredFeedbacks.map((item) => (
-            <div
-              key={item.id}
-              className="p-4 bg-slate-900/50 border border-slate-800/80 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-all hover:border-slate-700/90 shadow-md"
-            >
-              <div className="space-y-1">
-                <p className="text-sm text-slate-200 font-medium">{item.content}</p>
-                <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
-                  <span>Source: <strong className="text-indigo-400">{item.channel}</strong></span>
-                  <span>•</span>
-                  <span>Rating: <strong className="text-amber-400">{item.rating}</strong></span>
-                  <span>•</span>
-                  <span>Sentiment: <strong className="text-emerald-400">{item.sentiment}</strong></span>
-                  <span>•</span>
-                  <span>Intent: <strong className="text-cyan-400">{item.intent}</strong></span>
-                </div>
-              </div>
-              <span className="px-3.5 py-1.5 text-xs font-bold bg-slate-800/90 text-slate-300 rounded-xl border border-slate-700/80">
-                {item.status}
-              </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <select className="bg-slate-950/80 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-slate-700">
+              <option>All Channels</option>
+            </select>
+            <select className="bg-slate-950/80 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-slate-700">
+              <option>All Sentiments</option>
+            </select>
+            <select className="bg-slate-950/80 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-slate-700">
+              <option>All Themes</option>
+            </select>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-slate-500" />
+              <input 
+                type="text" 
+                placeholder="Search content..." 
+                className="bg-slate-950/80 border border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-slate-700" 
+              />
             </div>
-          ))}
+          </div>
         </div>
-      </div>
+
+        {/* Inbox Items */}
+        <div className="space-y-3">
+          
+          {/* Record 1 */}
+          <div className="p-4 rounded-xl bg-slate-950/50 border border-slate-800/80 hover:border-slate-700 transition-all flex items-center justify-between gap-4 group">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <Zap className="w-3.5 h-3.5 text-amber-400" />
+                <p className="text-xs font-medium text-slate-200">
+                  [Slack Sync] Webhook payload latency spike observed during peak load hours.
+                </p>
+              </div>
+              <div className="flex items-center gap-3 text-[11px] font-mono text-slate-500">
+                <span>Source: <strong className="text-slate-400">WEBHOOK</strong></span>
+                <span>• Rating: <strong className="text-amber-400">3/5</strong></span>
+                <span>• Sentiment: <strong className="text-slate-300">NEUTRAL</strong></span>
+                <span>• Intent: <strong className="text-sky-400">System Alert</strong></span>
+              </div>
+            </div>
+            <span className="text-[10px] font-mono font-semibold px-2 py-1 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+              NEW
+            </span>
+          </div>
+
+          {/* Record 2 */}
+          <div className="p-4 rounded-xl bg-slate-950/50 border border-slate-800/80 hover:border-slate-700 transition-all flex items-center justify-between gap-4 group">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <Zap className="w-3.5 h-3.5 text-red-400" />
+                <p className="text-xs font-medium text-slate-200">
+                  [Intercom] Users reporting billing portal timeout when exporting annual receipts.
+                </p>
+              </div>
+              <div className="flex items-center gap-3 text-[11px] font-mono text-slate-500">
+                <span>Source: <strong className="text-slate-400">WEB</strong></span>
+                <span>• Rating: <strong className="text-red-400">2/5</strong></span>
+                <span>• Sentiment: <strong className="text-red-400">NEGATIVE</strong></span>
+                <span>• Intent: <strong className="text-amber-400">Bug Report</strong></span>
+              </div>
+            </div>
+            <span className="text-[10px] font-mono font-semibold px-2 py-1 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+              NEW
+            </span>
+          </div>
+
+          {/* Record 3 */}
+          <div className="p-4 rounded-xl bg-slate-950/50 border border-slate-800/80 hover:border-slate-700 transition-all flex items-center justify-between gap-4 group">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                <p className="text-xs font-medium text-slate-200">
+                  [In-App Prompt] Love the high-contrast dark mode dashboard charts!
+                </p>
+              </div>
+              <div className="flex items-center gap-3 text-[11px] font-mono text-slate-500">
+                <span>Source: <strong className="text-slate-400">IN_APP</strong></span>
+                <span>• Rating: <strong className="text-emerald-400">5/5</strong></span>
+                <span>• Sentiment: <strong className="text-emerald-400">POSITIVE</strong></span>
+                <span>• Intent: <strong className="text-emerald-400">Praise</strong></span>
+              </div>
+            </div>
+            <span className="text-[10px] font-mono font-semibold px-2 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              VERIFIED
+            </span>
+          </div>
+
+        </div>
+      </section>
+
     </div>
   );
 }

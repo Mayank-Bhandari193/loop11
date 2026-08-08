@@ -43,6 +43,7 @@ model Feedback {
   userId      String?
   content     String               @db.Text
   rating      Int?
+  sentiment   String?  // Ensure this field exists in model
   source      FeedbackSource       @default(WEB)
   status      FeedbackStatus       @default(PENDING)
   createdAt   DateTime             @default(now())

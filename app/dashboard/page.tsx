@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { signOut } from "next-auth/react";
 
 interface FeedbackItem {
   id: string;
@@ -54,7 +55,7 @@ export default function Loop11Dashboard() {
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // States for VoC Modal & Ask AI RAG Output
+  // Pop-up Modal State for VoC Report
   const [showVocModal, setShowVocModal] = useState(false);
   const [aiAnswer, setAiAnswer] = useState<string | null>(null);
 
@@ -112,13 +113,21 @@ export default function Loop11Dashboard() {
     }, 1200);
   };
 
-  const handleLogout = () => {
+  // 🔴 LOGOUT FUNCTIONALITY (NEXTAUTH SIGN OUT + REDIRECT)
+  const handleLogout = async () => {
     if (confirm("Are you sure you want to log out of Loop11 AI Engine?")) {
-      window.location.reload();
+      showToast("Logging out session...");
+      try {
+        localStorage.removeItem("loop11_feedbacks");
+        // NextAuth signOut call with explicit callback to login page
+        await signOut({ callbackUrl: "/login" });
+      } catch (error) {
+        // Fallback hard-redirect in case NextAuth session provider is bypassed
+        window.location.href = "/login";
+      }
     }
   };
 
-  // ASK AI HANDLER - GENERATES DYNAMIC RAG RESPONSE
   const handleAskAI = () => {
     if (!query.trim()) {
       showToast("⚠️ Please enter a query for Grounded RAG Search.");
@@ -262,6 +271,7 @@ export default function Loop11Dashboard() {
             {loadingAction === "voc" ? "Generating..." : "Generate VoC Report"}
           </button>
 
+          {/* WORKING LOGOUT BUTTON */}
           <button onClick={handleLogout} className="text-xs font-medium px-3 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-all active:scale-95">
             Logout
           </button>
@@ -304,7 +314,7 @@ export default function Loop11Dashboard() {
         </div>
       </section>
 
-      {/* ---------------- GROUNDED AI SEARCH WITH DYNAMIC ANSWER DISPLAY ---------------- */}
+      {/* ---------------- GROUNDED AI SEARCH ---------------- */}
       <section className="p-5 rounded-2xl bg-linear-to-r from-indigo-950/30 via-slate-900/50 to-slate-900/30 border border-indigo-500/20 shadow-2xl backdrop-blur-xl space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold tracking-wide text-slate-200 uppercase font-mono">
@@ -331,7 +341,7 @@ export default function Loop11Dashboard() {
 
         {/* AI RAG ANSWER OUTPUT CONTAINER */}
         {aiAnswer && (
-          <div className="mt-3 p-4 rounded-xl bg-indigo-950/50 border border-indigo-500/40 text-xs text-indigo-200 space-y-1 font-sans animate-in fade-in duration-300">
+          <div className="mt-3 p-4 rounded-xl bg-indigo-950/50 border border-indigo-500/40 text-xs text-indigo-200 space-y-1 font-sans">
             <p className="font-semibold text-indigo-300 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               Groq AI RAG Engine Response:

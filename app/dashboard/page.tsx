@@ -57,28 +57,32 @@ export default function Loop11Dashboard() {
   // Pop-up Modal State for VoC Report
   const [showVocModal, setShowVocModal] = useState(false);
 
-  // State with LocalStorage Persistence for Refresh Support
+  // Dynamic Feedbacks State with Persistence
   const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
 
-  // Page Load Par LocalStorage se Data Load Karein
+  // Page Load Par LocalStorage se Data Safely Load Karein
   useEffect(() => {
-    const savedFeedbacks = localStorage.getItem("loop11_feedbacks");
-    if (savedFeedbacks) {
-      try {
+    try {
+      const savedFeedbacks = localStorage.getItem("loop11_feedbacks");
+      if (savedFeedbacks) {
         setFeedbacks(JSON.parse(savedFeedbacks));
-      } catch (e) {
+      } else {
         setFeedbacks(INITIAL_FEEDBACKS);
+        localStorage.setItem("loop11_feedbacks", JSON.stringify(INITIAL_FEEDBACKS));
       }
-    } else {
+    } catch (e) {
       setFeedbacks(INITIAL_FEEDBACKS);
-      localStorage.setItem("loop11_feedbacks", JSON.stringify(INITIAL_FEEDBACKS));
     }
   }, []);
 
-  // Helper to Save to LocalStorage
+  // Helper to Update State & LocalStorage
   const updateFeedbacks = (newList: FeedbackItem[]) => {
     setFeedbacks(newList);
-    localStorage.setItem("loop11_feedbacks", JSON.stringify(newList));
+    try {
+      localStorage.setItem("loop11_feedbacks", JSON.stringify(newList));
+    } catch (e) {
+      console.error("Failed to save to localStorage", e);
+    }
   };
 
   const showToast = (msg: string) => {
@@ -88,7 +92,7 @@ export default function Loop11Dashboard() {
 
   // --- Handlers ---
   const handlePrismaStudio = () => {
-    showToast("Opening Prisma Studio Database Manager...");
+    showToast("Opening Prisma Studio DB Manager...");
     window.open("http://localhost:5555", "_blank");
   };
 
@@ -106,7 +110,7 @@ export default function Loop11Dashboard() {
     setLoadingAction("voc");
     setTimeout(() => {
       setLoadingAction(null);
-      setShowVocModal(true); // Triggers Popup Modal
+      setShowVocModal(true);
     }, 1200);
   };
 
@@ -118,28 +122,28 @@ export default function Loop11Dashboard() {
 
   const handleAskAI = () => {
     if (!query.trim()) {
-      showToast("⚠️ Please enter a query for Grounded RAG Search.");
+      showToast("⚠️ Please enter a search query for Grounded RAG.");
       return;
     }
     setLoadingAction("ask");
     setTimeout(() => {
       setLoadingAction(null);
-      showToast(`AI Analysis Completed for query: "${query}"`);
+      showToast(`AI Analysis Completed for: "${query}"`);
     }, 1000);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      showToast(`Uploading CSV Data: ${file.name}`);
+      showToast(`Uploading CSV File: ${file.name}`);
     }
   };
 
-  // Live Seed Ticket Handler (Updates Counter 3 -> 4 -> 5 -> 6 & Persists on Refresh)
+  // Live Seed Ticket Handler (Safely updates total counter 3 -> 4 -> 5 -> 6)
   const handleSeedTicket = () => {
     setLoadingAction("seed");
     setTimeout(() => {
-      const currentCount = feedbacks.length + 1;
+      const currentCount = (feedbacks?.length || 0) + 1;
       const newTicket: FeedbackItem = {
         id: Date.now().toString(),
         title: `[Webhook Ticket #${currentCount}] Simulated telemetry alert injected at ${new Date().toLocaleTimeString()}`,
@@ -150,18 +154,22 @@ export default function Loop11Dashboard() {
         status: "NEW",
         channel: "Webhook",
       };
-      const updatedList = [newTicket, ...feedbacks];
+      const updatedList = [newTicket, ...(feedbacks || [])];
       updateFeedbacks(updatedList);
       setLoadingAction(null);
       showToast(`Ticket #${currentCount} Seeded! Total Records: ${updatedList.length}`);
     }, 600);
   };
 
-  // Filter Logic
-  const filteredFeedbacks = feedbacks.filter((item) => {
-    const matchesSearch = item.title.toLowerCase().includes(searchFilter.toLowerCase());
-    const matchesSentiment = selectedSentiment === "All Sentiments" || item.sentiment === selectedSentiment;
-    const matchesChannel = selectedChannel === "All Channels" || item.channel === selectedChannel;
+  // 🛡️ CRASH-PROOF SAFE FILTERING LOGIC (Prevents 'toLowerCase' of undefined errors)
+  const filteredFeedbacks = (feedbacks || []).filter((item) => {
+    const titleText = item?.title || "";
+    const searchTarget = (searchFilter || "").toLowerCase();
+    
+    const matchesSearch = titleText.toLowerCase().includes(searchTarget);
+    const matchesSentiment = selectedSentiment === "All Sentiments" || item?.sentiment === selectedSentiment;
+    const matchesChannel = selectedChannel === "All Channels" || item?.channel === selectedChannel;
+    
     return matchesSearch && matchesSentiment && matchesChannel;
   });
 
@@ -178,7 +186,7 @@ export default function Loop11Dashboard() {
       {/* POPUP MODAL FOR VOC REPORT */}
       {showVocModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
-          <div className="bg-slate-900 border border-indigo-500/40 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-slate-900 border border-indigo-500/40 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
             <div className="flex items-center gap-3">
               <span className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xl">
                 ⚡
@@ -198,7 +206,7 @@ export default function Loop11Dashboard() {
             <div className="flex justify-end gap-2 pt-2">
               <button 
                 onClick={() => setShowVocModal(false)}
-                className="px-5 py-2 rounded-xl bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-semibold text-xs transition-all shadow-lg shadow-indigo-500/20">
+                className="px-5 py-2 rounded-xl bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-semibold text-xs transition-all shadow-lg shadow-indigo-500/20 active:scale-95">
                 Successfully Done
               </button>
             </div>
@@ -227,21 +235,20 @@ export default function Loop11Dashboard() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <button onClick={handlePrismaStudio} className="text-xs font-medium px-3.5 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 text-slate-300">
+          <button onClick={handlePrismaStudio} className="text-xs font-medium px-3.5 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 text-slate-300 transition-all active:scale-95">
             Prisma Studio
           </button>
           
-          <button onClick={handleExportPDF} disabled={loadingAction === "pdf"} className="text-xs font-medium px-3.5 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 text-slate-300">
+          <button onClick={handleExportPDF} disabled={loadingAction === "pdf"} className="text-xs font-medium px-3.5 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 text-slate-300 transition-all active:scale-95 disabled:opacity-50">
             {loadingAction === "pdf" ? "Exporting..." : "Export PDF / Share Report"}
           </button>
 
-          {/* GENERATE VOC REPORT BUTTON WITH POPUP */}
-          <button onClick={handleGenerateVoC} disabled={loadingAction === "voc"} className="flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-xl bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-lg shadow-indigo-500/20 transition-all">
+          <button onClick={handleGenerateVoC} disabled={loadingAction === "voc"} className="flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-xl bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-lg shadow-indigo-500/20 transition-all active:scale-95 disabled:opacity-50">
             <span>⚡</span>
             {loadingAction === "voc" ? "Generating..." : "Generate VoC Report"}
           </button>
 
-          <button onClick={handleLogout} className="text-xs font-medium px-3 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20">
+          <button onClick={handleLogout} className="text-xs font-medium px-3 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-all active:scale-95">
             Logout
           </button>
         </div>
@@ -252,8 +259,7 @@ export default function Loop11Dashboard() {
         <div className="p-5 rounded-2xl bg-slate-900/40 border border-slate-800/80 backdrop-blur-md">
           <p className="text-xs font-mono font-medium tracking-wider text-slate-400 uppercase">Total Feedback</p>
           <div className="mt-3 flex items-baseline justify-between">
-            {/* LIVE COUNT DISPLAY (3 -> 4 -> 5 -> 6) */}
-            <span className="text-3xl font-black text-white">{feedbacks.length}</span>
+            <span className="text-3xl font-black text-white">{feedbacks?.length || 0}</span>
             <span className="text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
               Live DB
             </span>
@@ -304,7 +310,7 @@ export default function Loop11Dashboard() {
             placeholder="Type query e.g., 'login issue', 'bug report', or 'billing timeout'..."
             className="flex-1 bg-slate-950/60 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500/60"
           />
-          <button onClick={handleAskAI} disabled={loadingAction === "ask"} className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs">
+          <button onClick={handleAskAI} disabled={loadingAction === "ask"} className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs active:scale-95 disabled:opacity-50">
             {loadingAction === "ask" ? "Searching..." : "Ask AI"}
           </button>
         </div>
@@ -317,7 +323,7 @@ export default function Loop11Dashboard() {
             📂 Bulk CSV Data Import
           </h3>
           <div className="flex items-center gap-3">
-            <label className="cursor-pointer text-xs font-semibold px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700">
+            <label className="cursor-pointer text-xs font-semibold px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-all active:scale-95">
               Choose File
               <input type="file" onChange={handleFileUpload} className="hidden" accept=".csv" />
             </label>
@@ -336,7 +342,7 @@ export default function Loop11Dashboard() {
           <button 
             onClick={handleSeedTicket} 
             disabled={loadingAction === "seed"} 
-            className="px-4 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold">
+            className="px-4 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold transition-all active:scale-95 disabled:opacity-50">
             {loadingAction === "seed" ? "Seeding..." : "⚡ Seed Ticket"}
           </button>
         </div>
@@ -373,22 +379,28 @@ export default function Loop11Dashboard() {
         </div>
 
         <div className="space-y-3">
-          {filteredFeedbacks.map((item) => (
-            <div key={item.id} className="p-4 rounded-xl bg-slate-950/50 border border-slate-800/80 hover:border-slate-700 flex items-center justify-between gap-4">
-              <div className="space-y-1.5">
-                <p className="text-xs font-medium text-slate-200">{item.title}</p>
-                <div className="flex items-center gap-3 text-[11px] font-mono text-slate-500">
-                  <span>Source: <strong className="text-slate-400">{item.source}</strong></span>
-                  <span>• Rating: <strong className="text-amber-400">{item.rating}/5</strong></span>
-                  <span>• Sentiment: <strong className={item.sentiment === "POSITIVE" ? "text-emerald-400" : item.sentiment === "NEGATIVE" ? "text-red-400" : "text-slate-300"}>{item.sentiment}</strong></span>
-                  <span>• Intent: <strong className="text-sky-400">{item.intent}</strong></span>
-                </div>
-              </div>
-              <span className="text-[10px] font-mono font-semibold px-2 py-1 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                {item.status}
-              </span>
+          {filteredFeedbacks.length === 0 ? (
+            <div className="p-6 text-center text-xs text-slate-500 font-mono">
+              No matching feedback records found.
             </div>
-          ))}
+          ) : (
+            filteredFeedbacks.map((item) => (
+              <div key={item.id} className="p-4 rounded-xl bg-slate-950/50 border border-slate-800/80 hover:border-slate-700 flex items-center justify-between gap-4">
+                <div className="space-y-1.5">
+                  <p className="text-xs font-medium text-slate-200">{item.title}</p>
+                  <div className="flex items-center gap-3 text-[11px] font-mono text-slate-500">
+                    <span>Source: <strong className="text-slate-400">{item.source}</strong></span>
+                    <span>• Rating: <strong className="text-amber-400">{item.rating}/5</strong></span>
+                    <span>• Sentiment: <strong className={item.sentiment === "POSITIVE" ? "text-emerald-400" : item.sentiment === "NEGATIVE" ? "text-red-400" : "text-slate-300"}>{item.sentiment}</strong></span>
+                    <span>• Intent: <strong className="text-sky-400">{item.intent}</strong></span>
+                  </div>
+                </div>
+                <span className="text-[10px] font-mono font-semibold px-2 py-1 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                  {item.status}
+                </span>
+              </div>
+            ))
+          )}
         </div>
       </section>
 

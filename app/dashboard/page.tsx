@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { signOut } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 interface FeedbackItem {
   id: string;
@@ -48,6 +49,9 @@ const INITIAL_FEEDBACKS: FeedbackItem[] = [
 ];
 
 export default function Loop11Dashboard() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
   const [query, setQuery] = useState("");
   const [searchFilter, setSearchFilter] = useState("");
   const [selectedChannel, setSelectedChannel] = useState("All Channels");
@@ -55,12 +59,16 @@ export default function Loop11Dashboard() {
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Pop-up Modal State for VoC Report & Ask AI Output
   const [showVocModal, setShowVocModal] = useState(false);
   const [aiAnswer, setAiAnswer] = useState<string | null>(null);
-
-  // Feedbacks State
   const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
+
+  // 🔒 ROUTE GUARD: Unauthenticated User KO DIRECT LOGIN PAR REDIRECT KAREIN
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login");
+    }
+  }, [status, router]);
 
   useEffect(() => {
     try {
@@ -90,7 +98,6 @@ export default function Loop11Dashboard() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // --- Handlers ---
   const handlePrismaStudio = () => {
     showToast("Opening Prisma Studio DB Manager...");
     window.open("http://localhost:5555", "_blank");
@@ -113,25 +120,16 @@ export default function Loop11Dashboard() {
     }, 1200);
   };
 
-  // 🔴 100% WORKING LOGOUT HANDLER
+  // 🔴 100% SECURE LOGOUT HANDLER
   const handleLogout = async () => {
     showToast("Logging out session...");
-    
-    // Local storage clean up
     try {
       localStorage.removeItem("loop11_feedbacks");
       sessionStorage.clear();
     } catch (e) {
       console.error(e);
     }
-
-    // Try NextAuth signOut, fallback to direct browser redirect
-    try {
-      await signOut({ redirect: false });
-      window.location.href = "/login";
-    } catch (error) {
-      window.location.href = "/login";
-    }
+    await signOut({ callbackUrl: "/login" });
   };
 
   const handleAskAI = () => {
@@ -190,7 +188,6 @@ export default function Loop11Dashboard() {
     }, 600);
   };
 
-  // Filter Logic
   const filteredFeedbacks = (feedbacks || []).filter((item) => {
     const titleText = item?.title || "";
     const searchTarget = (searchFilter || "").toLowerCase();
@@ -202,17 +199,24 @@ export default function Loop11Dashboard() {
     return matchesSearch && matchesSentiment && matchesChannel;
   });
 
+  // Session check loading screen
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen bg-[#07090e] flex items-center justify-center text-slate-400 font-mono text-xs">
+        Authenticating Loop11 Workspace Session...
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 font-sans p-6 space-y-6 relative">
       
-      {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-indigo-600 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-2xl border border-indigo-400/30 animate-bounce">
           {toastMessage}
         </div>
       )}
 
-      {/* POPUP MODAL FOR VOC REPORT */}
       {showVocModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
           <div className="bg-slate-900 border border-indigo-500/40 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
@@ -258,8 +262,10 @@ export default function Loop11Dashboard() {
           <h1 className="text-2xl font-extrabold tracking-tight bg-linear-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
             Loop11 AI Feedback Engine
           </h1>
+          
+          {/* ⚡ DYNAMIC USER EMAIL DISPLAY */}
           <p className="text-xs text-slate-400 font-mono">
-            User: <span className="text-indigo-400 font-medium">mayankbhandari267@gmail.com</span>
+            User: <span className="text-indigo-400 font-medium">{session?.user?.email || "Authenticated User"}</span>
           </p>
         </div>
 
@@ -277,10 +283,8 @@ export default function Loop11Dashboard() {
             {loadingAction === "voc" ? "Generating..." : "Generate VoC Report"}
           </button>
 
-          {/* 🔴 FIXED LOGOUT BUTTON */}
           <button 
             onClick={handleLogout} 
-            type="button"
             className="text-xs font-medium px-3 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-all active:scale-95 cursor-pointer">
             Logout
           </button>
@@ -348,7 +352,6 @@ export default function Loop11Dashboard() {
           </button>
         </div>
 
-        {/* AI RAG ANSWER OUTPUT CONTAINER */}
         {aiAnswer && (
           <div className="mt-3 p-4 rounded-xl bg-indigo-950/50 border border-indigo-500/40 text-xs text-indigo-200 space-y-1 font-sans">
             <p className="font-semibold text-indigo-300 flex items-center gap-2">

@@ -13,6 +13,37 @@ pnpm dev
 # or
 bun dev
 ```
+loop11/
+├── 🎨 FRONTEND ARCHITECTURE (/app, /components)
+│   ├── app/
+│   │   ├── dashboard/page.tsx    # Main Analytics & AI Feedback Dashboard UI
+│   │   ├── login/page.tsx        # User Authentication Login Screen
+│   │   ├── signup/page.tsx       # User Registration Screen
+│   │   ├── unauthorized/page.tsx # Access Guard Error Screen
+│   │   ├── globals.css           # Global Dark Theme Styling
+│   │   └── layout.tsx            # Root Layout & NextAuth Providers
+│   └── components/
+│       ├── Navbar.tsx            # Header Navigation & Status Indicators
+│       ├── Toast.tsx             # Interactive Action Notifications
+│       └── VocModal.tsx          # Voice-of-Customer Report Popup Modal
+│
+├── ⚙️ BACKEND ARCHITECTURE (/app/api, /prisma, /lib)
+│   ├── app/api/
+│   │   ├── feedback/seed/route.ts # Live Webhook Ticket Injection API
+│   │   ├── ask/route.ts           # Grounded AI Search (RAG) API
+│   │   ├── reports/voc/route.ts   # Executive VoC Report Generator API
+│   │   └── auth/[...nextauth]/    # NextAuth Session Handler & RBAC Guards
+│   ├── prisma/
+│   │   └── schema.prisma         # Database Models (User, Workspace, Feedback)
+│   └── lib/
+│       ├── prisma.ts             # Neon PostgreSQL DB Client Instance
+│       └── groq.ts               # Groq LLM SDK & Prompt Directives
+│
+├── 📂 REFERENCE DIRECTORIES
+│   ├── frontend/README.md        # Frontend Documentation Reference
+│   └── backend/README.md         # Backend API & Schema Reference
+│
+└── public/                       # Static Assets & Icons
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 

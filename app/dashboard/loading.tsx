@@ -7,13 +7,11 @@ export default function Loading() {
           <div key={i} className="h-28 bg-slate-800/50 rounded-xl border border-slate-700/50" />
         ))}
       </div>
-
       {/* Chart & AI Summary Skeleton */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="h-64 bg-slate-800/50 rounded-xl border border-slate-700/50 lg:col-span-2" />
         <div className="h-64 bg-slate-800/50 rounded-xl border border-slate-700/50" />
       </div>
-
       {/* Table/Inbox Skeleton */}
       <div className="h-96 bg-slate-800/50 rounded-xl border border-slate-700/50" />
     </div>

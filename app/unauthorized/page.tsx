@@ -1,5 +1,4 @@
 import Link from 'next/link';
-
 export default function ForbiddenPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-[#0B0F19]">

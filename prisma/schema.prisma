@@ -12,11 +12,9 @@ model VocReport {
 datasource db {
   provider = "postgresql"
 }
-
 generator client {
   provider = "prisma-client-js"
 }
-
 model Workspace {
   id        String   @id @default(cuid())
   name      String
@@ -24,7 +22,6 @@ model Workspace {
   feedbacks Feedback[]
   createdAt DateTime @default(now())
 }
-
 model User {
   id          String    @id @default(cuid())
   name        String?
@@ -35,7 +32,6 @@ model User {
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdAt   DateTime  @default(now())
 }
-
 model Feedback {
   id          String               @id @default(cuid())
   workspaceId String              // <-- Added for multi-tenancy scoping
@@ -54,7 +50,6 @@ model Feedback {
   @@index([userId])
   @@index([status])
 }
-
 model AiAnalysis {
   id             String    @id @default(cuid())
   feedbackId     String    @unique
@@ -67,7 +62,6 @@ model AiAnalysis {
   tags           String[]
   analyzedAt     DateTime  @default(now())
 }
-
 model FeatureAttraction {
   id          String               @id @default(cuid())
   title       String               @unique
@@ -76,7 +70,6 @@ model FeatureAttraction {
   createdAt   DateTime             @default(now())
   voters      FeedbackAttraction[]
 }
-
 model FeedbackAttraction {
   id                  String            @id @default(cuid())
   userId              String
@@ -88,12 +81,10 @@ model FeedbackAttraction {
 
   @@unique([userId, featureAttractionId])
 }
-
 enum Role {
   ADMIN
   MEMBER
 }
-
 enum Sentiment {
   VERY_POSITIVE
   POSITIVE
@@ -101,21 +92,18 @@ enum Sentiment {
   NEGATIVE
   VERY_NEGATIVE
 }
-
 enum FeedbackStatus {
   PENDING
   PROCESSING
   RESOLVED
   ARCHIVED
 }
-
 enum FeedbackSource {
   WEB
   MOBILE_APP
   EMAIL
   IN_APP_PROMPT
 }
-
 enum Urgency {
   LOW
   MEDIUM

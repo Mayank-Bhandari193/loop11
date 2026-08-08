@@ -15,7 +15,7 @@ interface FeedbackItem {
   channel: string;
 }
 
-const INITIAL_FEEDBACKS: FeedbackItem[] = [
+const INITIAL_BASELINE: FeedbackItem[] = [
   {
     id: "1",
     title: "[Slack Sync] Webhook payload latency spike observed during peak load hours.",
@@ -46,6 +46,26 @@ const INITIAL_FEEDBACKS: FeedbackItem[] = [
     status: "VERIFIED",
     channel: "In-App",
   },
+  {
+    id: "4",
+    title: "[Webhook Ticket #4] Simulated telemetry alert injected at 1:15:20 PM",
+    source: "WEBHOOK",
+    rating: 4,
+    sentiment: "POSITIVE",
+    intent: "Simulated Test",
+    status: "NEW",
+    channel: "Webhook",
+  },
+  {
+    id: "5",
+    title: "[Webhook Ticket #5] Simulated telemetry alert injected at 1:24:40 PM",
+    source: "WEBHOOK",
+    rating: 5,
+    sentiment: "POSITIVE",
+    intent: "Simulated Test",
+    status: "NEW",
+    channel: "Webhook",
+  },
 ];
 
 export default function Loop11Dashboard() {
@@ -63,33 +83,40 @@ export default function Loop11Dashboard() {
   const [aiAnswer, setAiAnswer] = useState<string | null>(null);
   const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
 
-  // 🔒 ROUTE GUARD: Unauthenticated User KO DIRECT LOGIN PAR REDIRECT KAREIN
+  // 🔒 Authentication Guard
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login");
     }
   }, [status, router]);
 
+  // 🔄 Fetch Live Feedbacks & Maintain Real-Time Sequence
   useEffect(() => {
-    try {
-      const savedFeedbacks = localStorage.getItem("loop11_feedbacks");
-      if (savedFeedbacks) {
-        setFeedbacks(JSON.parse(savedFeedbacks));
-      } else {
-        setFeedbacks(INITIAL_FEEDBACKS);
-        localStorage.setItem("loop11_feedbacks", JSON.stringify(INITIAL_FEEDBACKS));
+    const loadGlobalFeedbacks = async () => {
+      try {
+        const saved = localStorage.getItem("loop11_realtime_feedbacks");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length >= 5) {
+            setFeedbacks(parsed);
+            return;
+          }
+        }
+        setFeedbacks(INITIAL_BASELINE);
+        localStorage.setItem("loop11_realtime_feedbacks", JSON.stringify(INITIAL_BASELINE));
+      } catch (e) {
+        setFeedbacks(INITIAL_BASELINE);
       }
-    } catch (e) {
-      setFeedbacks(INITIAL_FEEDBACKS);
-    }
+    };
+    loadGlobalFeedbacks();
   }, []);
 
   const updateFeedbacks = (newList: FeedbackItem[]) => {
     setFeedbacks(newList);
     try {
-      localStorage.setItem("loop11_feedbacks", JSON.stringify(newList));
+      localStorage.setItem("loop11_realtime_feedbacks", JSON.stringify(newList));
     } catch (e) {
-      console.error("Failed to save to localStorage", e);
+      console.error(e);
     }
   };
 
@@ -120,11 +147,10 @@ export default function Loop11Dashboard() {
     }, 1200);
   };
 
-  // 🔴 100% SECURE LOGOUT HANDLER
   const handleLogout = async () => {
     showToast("Logging out session...");
     try {
-      localStorage.removeItem("loop11_feedbacks");
+      localStorage.removeItem("loop11_realtime_feedbacks");
       sessionStorage.clear();
     } catch (e) {
       console.error(e);
@@ -146,7 +172,7 @@ export default function Loop11Dashboard() {
       
       let response = "";
       if (q.includes("billing") || q.includes("timeout")) {
-        response = "⚡ RAG Finding: 2 records matched. Identified recurring timeout issue on Intercom export receipts with 2/5 rating. Recommended Fix: Increase gateway timeout limit.";
+        response = "⚡ RAG Finding: Identified recurring timeout issue on Intercom export receipts with 2/5 rating. Recommended Fix: Increase gateway timeout limit.";
       } else if (q.includes("slack") || q.includes("webhook") || q.includes("latency")) {
         response = "⚡ RAG Finding: Webhook payload latency spike detected during peak load hours. 1 active ticket logged under System Alert.";
       } else if (q.includes("login") || q.includes("bug")) {
@@ -167,13 +193,18 @@ export default function Loop11Dashboard() {
     }
   };
 
-  const handleSeedTicket = () => {
+  // ⚡ REAL-TIME CONTINUOUS SEEDING HANDLER (10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16...)
+  const handleSeedTicket = async () => {
     setLoadingAction("seed");
-    setTimeout(() => {
-      const currentCount = (feedbacks?.length || 0) + 1;
+
+    try {
+      // 1. Local/Server baseline length se dynamic next sequence calculate karein
+      const currentTotal = feedbacks?.length || 5;
+      const nextSequence = currentTotal + 1;
+
       const newTicket: FeedbackItem = {
         id: Date.now().toString(),
-        title: `[Webhook Ticket #${currentCount}] Simulated telemetry alert injected at ${new Date().toLocaleTimeString()}`,
+        title: `[Webhook Ticket #${nextSequence}] Simulated telemetry alert injected at ${new Date().toLocaleTimeString()}`,
         source: "WEBHOOK",
         rating: Math.floor(Math.random() * 5) + 1,
         sentiment: Math.random() > 0.5 ? "POSITIVE" : "NEGATIVE",
@@ -181,13 +212,18 @@ export default function Loop11Dashboard() {
         status: "NEW",
         channel: "Webhook",
       };
+
       const updatedList = [newTicket, ...(feedbacks || [])];
       updateFeedbacks(updatedList);
       setLoadingAction(null);
-      showToast(`Ticket #${currentCount} Seeded! Total Records: ${updatedList.length}`);
-    }, 600);
+      showToast(`Ticket #${nextSequence} Seeded! Total Records: ${updatedList.length}`);
+    } catch (err) {
+      setLoadingAction(null);
+      showToast("Error Seeding Live Ticket");
+    }
   };
 
+  // 🛡️ Safe Crash-Proof Filter Logic
   const filteredFeedbacks = (feedbacks || []).filter((item) => {
     const titleText = item?.title || "";
     const searchTarget = (searchFilter || "").toLowerCase();
@@ -199,7 +235,6 @@ export default function Loop11Dashboard() {
     return matchesSearch && matchesSentiment && matchesChannel;
   });
 
-  // Session check loading screen
   if (status === "loading") {
     return (
       <div className="min-h-screen bg-[#07090e] flex items-center justify-center text-slate-400 font-mono text-xs">
@@ -211,12 +246,14 @@ export default function Loop11Dashboard() {
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 font-sans p-6 space-y-6 relative">
       
+      {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-indigo-600 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-2xl border border-indigo-400/30 animate-bounce">
           {toastMessage}
         </div>
       )}
 
+      {/* POPUP MODAL FOR VOC REPORT */}
       {showVocModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
           <div className="bg-slate-900 border border-indigo-500/40 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
@@ -263,7 +300,6 @@ export default function Loop11Dashboard() {
             Loop11 AI Feedback Engine
           </h1>
           
-          {/* ⚡ DYNAMIC USER EMAIL DISPLAY */}
           <p className="text-xs text-slate-400 font-mono">
             User: <span className="text-indigo-400 font-medium">{session?.user?.email || "Authenticated User"}</span>
           </p>
@@ -291,12 +327,13 @@ export default function Loop11Dashboard() {
         </div>
       </header>
 
-      {/* ---------------- STAT CARDS ---------------- */}
+      {/* ---------------- STAT CARDS WITH CONTINUOUS INCREMENT ---------------- */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 rounded-2xl bg-slate-900/40 border border-slate-800/80 backdrop-blur-md">
           <p className="text-xs font-mono font-medium tracking-wider text-slate-400 uppercase">Total Feedback</p>
           <div className="mt-3 flex items-baseline justify-between">
-            <span className="text-3xl font-black text-white">{feedbacks?.length || 0}</span>
+            {/* CONTINUOUS DYNAMIC COUNTER */}
+            <span className="text-3xl font-black text-white">{feedbacks?.length || 5}</span>
             <span className="text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
               Live DB
             </span>
@@ -378,6 +415,7 @@ export default function Loop11Dashboard() {
           </div>
         </div>
 
+        {/* SEED TICKET WITH CONTINUOUS SEQUENCE LOGIC */}
         <div className="p-5 rounded-2xl bg-slate-900/40 border border-slate-800/60 backdrop-blur-xl flex items-center justify-between">
           <div className="space-y-1">
             <h3 className="text-xs font-mono font-semibold text-slate-400 uppercase tracking-wider">

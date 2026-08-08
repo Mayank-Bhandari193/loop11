@@ -55,7 +55,7 @@ export default function Loop11Dashboard() {
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Pop-up Modal State for VoC Report
+  // Pop-up Modal State for VoC Report & Ask AI Output
   const [showVocModal, setShowVocModal] = useState(false);
   const [aiAnswer, setAiAnswer] = useState<string | null>(null);
 
@@ -113,18 +113,24 @@ export default function Loop11Dashboard() {
     }, 1200);
   };
 
-  // 🔴 LOGOUT FUNCTIONALITY (NEXTAUTH SIGN OUT + REDIRECT)
+  // 🔴 100% WORKING LOGOUT HANDLER
   const handleLogout = async () => {
-    if (confirm("Are you sure you want to log out of Loop11 AI Engine?")) {
-      showToast("Logging out session...");
-      try {
-        localStorage.removeItem("loop11_feedbacks");
-        // NextAuth signOut call with explicit callback to login page
-        await signOut({ callbackUrl: "/login" });
-      } catch (error) {
-        // Fallback hard-redirect in case NextAuth session provider is bypassed
-        window.location.href = "/login";
-      }
+    showToast("Logging out session...");
+    
+    // Local storage clean up
+    try {
+      localStorage.removeItem("loop11_feedbacks");
+      sessionStorage.clear();
+    } catch (e) {
+      console.error(e);
+    }
+
+    // Try NextAuth signOut, fallback to direct browser redirect
+    try {
+      await signOut({ redirect: false });
+      window.location.href = "/login";
+    } catch (error) {
+      window.location.href = "/login";
     }
   };
 
@@ -271,8 +277,11 @@ export default function Loop11Dashboard() {
             {loadingAction === "voc" ? "Generating..." : "Generate VoC Report"}
           </button>
 
-          {/* WORKING LOGOUT BUTTON */}
-          <button onClick={handleLogout} className="text-xs font-medium px-3 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-all active:scale-95">
+          {/* 🔴 FIXED LOGOUT BUTTON */}
+          <button 
+            onClick={handleLogout} 
+            type="button"
+            className="text-xs font-medium px-3 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-all active:scale-95 cursor-pointer">
             Logout
           </button>
         </div>

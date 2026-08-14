@@ -3,6 +3,19 @@
 import { useState, useEffect, useMemo, ChangeEvent, FormEvent } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+} from "recharts";
 import SmartFeedbackModal from "@/components/SmartFeedbackModal";
 
 export interface FeedbackItem {
@@ -96,11 +109,34 @@ const liveSeedPool: Omit<FeedbackItem, "id" | "createdAt">[] = [
   },
 ];
 
+// Recharts Static Data
+const volumeTrendData = [
+  { day: "Mon", count: 4 },
+  { day: "Tue", count: 6 },
+  { day: "Wed", count: 9 },
+  { day: "Thu", count: 12 },
+  { day: "Fri", count: 18 },
+  { day: "Sat", count: 7 },
+  { day: "Sun", count: 10 },
+];
+
+const sentimentPieData = [
+  { name: "Positive Sentiment", value: 47, color: "#10b981" },
+  { name: "Negative & Neutral", value: 53, color: "#f43f5e" },
+];
+
+const topThemesData = [
+  { name: "Feature Request", count: 16 },
+  { name: "Billing Issue", count: 14 },
+  { name: "Bug Report", count: 9 },
+  { name: "Positive Feedback", count: 9 },
+];
+
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  // 🔒 Strict Auth Guard: Logged out users are automatically pushed to /login
+  // 🔒 Strict Auth Guard
   useEffect(() => {
     if (status === "unauthenticated") {
       router.replace("/login");
@@ -133,7 +169,7 @@ export default function DashboardPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
 
-  // Hydrate initial 100 records
+  // Hydrate Initial 100 records
   useEffect(() => {
     const saved = localStorage.getItem("loop11_synchronized_feedbacks");
     if (saved) {
@@ -168,7 +204,7 @@ export default function DashboardPage() {
     return Math.round((posCount / totalCount) * 100);
   }, [feedbacks, totalCount]);
 
-  // 🔒 Real-time Logout Handler
+  // 🔒 Logout Handler
   const handleLogout = async () => {
     try {
       await signOut({ redirect: false, callbackUrl: "/login" });
@@ -317,7 +353,7 @@ export default function DashboardPage() {
     currentPage * itemsPerPage
   );
 
-  // If loading session or unauthenticated, prevent dashboard flash
+  // Loading Screen for unauthenticated check
   if (status === "loading" || status === "unauthenticated") {
     return (
       <div className="min-h-screen bg-[#07090E] flex flex-col items-center justify-center text-slate-400 space-y-3">
@@ -374,7 +410,6 @@ export default function DashboardPage() {
             {isGeneratingVoC ? "Generating..." : "⚡ Generate VoC Report"}
           </button>
 
-          {/* 🔒 Guaranteed Secure Logout Trigger */}
           <button
             onClick={handleLogout}
             className="px-4 py-2.5 text-xs font-semibold bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-800/60 rounded-xl transition-all active:scale-95 cursor-pointer"
@@ -401,6 +436,146 @@ export default function DashboardPage() {
         <div className="p-6 bg-slate-900/60 border border-slate-800/80 rounded-2xl shadow-xl">
           <p className="text-xs uppercase tracking-wider text-slate-400 font-bold">RESPONSE RATE</p>
           <p className="text-4xl font-black text-amber-400 mt-2">7%</p>
+        </div>
+      </div>
+
+      {/* 📊 ANALYTICS OVERVIEW SECTION (Area Chart, Donut Chart, Bar Chart) */}
+      <div className="space-y-3">
+        <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400">
+          ANALYTICS OVERVIEW
+        </h2>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          {/* 1. Feedback Volume (7 Days) Area Chart */}
+          <div className="p-5 bg-slate-900/70 border border-slate-800/90 rounded-2xl shadow-xl space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-sm font-bold text-slate-200">Feedback Volume (7 Days)</h3>
+              <span className="text-[10px] font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-0.5 rounded-full">
+                Weekly Trend
+              </span>
+            </div>
+            <div className="h-44 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={volumeTrendData}>
+                  <defs>
+                    <linearGradient id="volGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.5} />
+                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0.0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis
+                    dataKey="day"
+                    stroke="#64748b"
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={{ stroke: "#334155" }}
+                  />
+                  <YAxis
+                    stroke="#64748b"
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={{ stroke: "#334155" }}
+                    domain={[0, 20]}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#0f172a",
+                      borderColor: "#334155",
+                      borderRadius: "12px",
+                      fontSize: "12px",
+                      color: "#f8fafc",
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="count"
+                    stroke="#818cf8"
+                    strokeWidth={2.5}
+                    fillOpacity={1}
+                    fill="url(#volGrad)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* 2. Sentiment Distribution Donut Chart */}
+          <div className="p-5 bg-slate-900/70 border border-slate-800/90 rounded-2xl shadow-xl space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-sm font-bold text-slate-200">Sentiment Distribution</h3>
+              <span className="text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
+                AI Classified
+              </span>
+            </div>
+            <div className="h-44 w-full flex items-center justify-center">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={sentimentPieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={45}
+                    outerRadius={65}
+                    paddingAngle={3}
+                    dataKey="value"
+                  >
+                    {sentimentPieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} stroke="#0f172a" strokeWidth={2} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value) => [`${value}%`, "Share"]}
+                    contentStyle={{
+                      backgroundColor: "#0f172a",
+                      borderColor: "#334155",
+                      borderRadius: "12px",
+                      fontSize: "12px",
+                      color: "#f8fafc",
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* 3. Top Recurring Themes Bar Chart */}
+          <div className="p-5 bg-slate-900/70 border border-slate-800/90 rounded-2xl shadow-xl space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-sm font-bold text-slate-200">Top Recurring Themes</h3>
+              <span className="text-[10px] font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-2.5 py-0.5 rounded-full">
+                Top Issues
+              </span>
+            </div>
+            <div className="h-44 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={topThemesData}>
+                  <XAxis
+                    dataKey="name"
+                    stroke="#64748b"
+                    fontSize={10}
+                    tickLine={false}
+                    axisLine={{ stroke: "#334155" }}
+                  />
+                  <YAxis
+                    stroke="#64748b"
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={{ stroke: "#334155" }}
+                    domain={[0, 18]}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#0f172a",
+                      borderColor: "#334155",
+                      borderRadius: "12px",
+                      fontSize: "12px",
+                      color: "#f8fafc",
+                    }}
+                  />
+                  <Bar dataKey="count" fill="#38bdf8" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -467,7 +642,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Feedback Inbox Stream with Dynamic Synchronized Count */}
+      {/* Feedback Inbox Stream */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
           <h2 className="text-lg font-bold text-white">

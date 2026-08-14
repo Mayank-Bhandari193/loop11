@@ -97,8 +97,15 @@ const liveSeedPool: Omit<FeedbackItem, "id" | "createdAt">[] = [
 ];
 
 export default function DashboardPage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
+
+  // 🔒 Strict Auth Guard: Logged out users are automatically pushed to /login
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.replace("/login");
+    }
+  }, [status, router]);
 
   // State Management
   const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
@@ -161,13 +168,13 @@ export default function DashboardPage() {
     return Math.round((posCount / totalCount) * 100);
   }, [feedbacks, totalCount]);
 
-  // ✅ Logout Handler: Clears session and redirects directly to /login
+  // 🔒 Real-time Logout Handler
   const handleLogout = async () => {
     try {
-      await signOut({ redirect: false });
-      router.push("/login");
+      await signOut({ redirect: false, callbackUrl: "/login" });
+      router.replace("/login");
     } catch (error) {
-      console.error("Logout redirection error:", error);
+      console.error("Logout error:", error);
       window.location.href = "/login";
     }
   };
@@ -182,7 +189,7 @@ export default function DashboardPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(template),
-      }).catch((err) => console.log("DB sync background notice:", err));
+      }).catch((err) => console.log("DB sync notice:", err));
 
       const newFeedback: FeedbackItem = {
         id: `ticket_${Date.now()}`,
@@ -206,7 +213,7 @@ export default function DashboardPage() {
     }
   };
 
-  // ✅ Dynamic Context-Aware "Ask LOOP" Semantic Intelligence Engine
+  // Dynamic Context-Aware "Ask LOOP" Search
   const handleAskAI = (e: FormEvent) => {
     e.preventDefault();
     const query = searchQuery.trim().toLowerCase();
@@ -218,7 +225,6 @@ export default function DashboardPage() {
     setTimeout(() => {
       setIsAsking(false);
 
-      // Semantic matching against active feedback dataset
       const matchingItems = feedbacks.filter((f) =>
         f.content.toLowerCase().includes(query) ||
         f.theme.toLowerCase().includes(query) ||
@@ -229,7 +235,6 @@ export default function DashboardPage() {
 
       setAiMatchedCount(matchingItems.length);
 
-      // Dynamic Contextual Responses based on user query intent
       if (query.includes("login") || query.includes("sso") || query.includes("auth")) {
         setAiAnswer(
           `Analyzed ${totalCount} records (Found ${matchingItems.length} matching): Multiple enterprise users requested Google SSO and Okta SAML support. Average sentiment in authentication feedback is 60% Positive, with high demand for role-based workspace permissions.`
@@ -312,6 +317,16 @@ export default function DashboardPage() {
     currentPage * itemsPerPage
   );
 
+  // If loading session or unauthenticated, prevent dashboard flash
+  if (status === "loading" || status === "unauthenticated") {
+    return (
+      <div className="min-h-screen bg-[#07090E] flex flex-col items-center justify-center text-slate-400 space-y-3">
+        <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-xs font-mono">Authenticating Workspace Session...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#07090E] text-slate-100 p-4 md:p-8 space-y-8 print:bg-white print:text-black">
       {/* Top Header Navigation */}
@@ -354,12 +369,12 @@ export default function DashboardPage() {
               }, 800);
             }}
             disabled={isGeneratingVoC}
-            className="px-5 py-2.5 text-xs font-bold bg-linear-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl shadow-lg shadow-indigo-600/25 transition-all active:scale-95 disabled:opacity-50"
+            className="px-5 py-2.5 text-xs font-bold bg-linear-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl shadow-lg shadow-indigo-600/25 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
           >
             {isGeneratingVoC ? "Generating..." : "⚡ Generate VoC Report"}
           </button>
 
-          {/* ✅ Logout Action with Guaranteed /login Redirection */}
+          {/* 🔒 Guaranteed Secure Logout Trigger */}
           <button
             onClick={handleLogout}
             className="px-4 py-2.5 text-xs font-semibold bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-800/60 rounded-xl transition-all active:scale-95 cursor-pointer"
@@ -462,7 +477,6 @@ export default function DashboardPage() {
             </span>
           </h2>
 
-          {/* Reset Demo Button */}
           <button
             onClick={() => {
               const reset100 = generateInitial100Feedbacks();

@@ -1,0 +1,15 @@
+# Changelog
+
+bb8a8e7 | Mayank Bhandari | 2026-08-09 00:52 | docs: add frontend and backend reference directories
+26f79e2 | Mayank | 2026-08-09 00:50 | Enhance README with architecture structure
+e70d113 | Mayank Bhandari | 2026-08-08 13:36 | fix: resolve Prisma enum type mismatch in seed API route and sync continuous increment
+5d040ad | Mayank Bhandari | 2026-08-08 13:22 | feat: enforce session guard redirect and display dynamic logged in user email
+0c6ed8f | Mayank Bhandari | 2026-08-08 13:13 | fix: hard redirect fallback on logout button click
+060478a | Mayank Bhandari | 2026-08-08 13:08 | fix: resolve logout button redirect with NextAuth signOut and fallback
+832fd5b | Mayank Bhandari | 2026-08-08 11:03 | feat: render dynamic RAG response output card on Ask AI button click
+120989d | Mayank Bhandari | 2026-08-08 10:57 | fix: safe check on title for filter and deploy full dashboard
+c865196 | Mayank Bhandari | 2026-08-08 10:52 | feat: add persistent seed ticket live counter and VoC report popup modal
+725a138 | Mayank Bhandari | 2026-08-08 10:46 | fix: resolve feedback sentiment type error and add premium dark theme UI
+cea74b1 | Mayank Bhandari | 2026-08-08 10:40 | fix: resolve feedback sentiment type error and add premium dark theme UI
+b5a2e27 | Mayank Bhandari | 2026-08-08 10:26 | fix: resolve prisma feedback sentiment type error
+77f5ae9 | Mayank Bhandari | 2026-08-05 12:10 | feat: complete interactive customer feedback widget and clean code

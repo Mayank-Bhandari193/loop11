@@ -9,6 +9,12 @@
 
 ---
 
+## 🌐 Live Application Links
+
+* **🚀 Landing Page / Live App:** [https://loop11.vercel.app](https://loop11.vercel.app)[cite: 1]
+* **📝 SignUp Screen:** [https://loop11.vercel.app/signup](https://loop11.vercel.app/signup)[cite: 2]
+* **🔐 Login Screen:** [https://loop11.vercel.app/login](https://loop11.vercel.app/login)[cite: 3]
+* **📊 Analytics Dashboard:** [https://loop11.vercel.app/dashboard](https://loop11.vercel.app/dashboard)[cite: 4]
 ## 🌟 What's New in the Latest Release
 
 * **🔒 Next.js Edge Middleware Auth Guard (`middleware.ts`):** Complete server-level route protection for `/dashboard`, `/inbox`, `/ask`, and `/reports`. Instant and secure session revocation on logout with auto-redirect to `/login`.
